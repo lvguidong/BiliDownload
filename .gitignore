@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+.pycache/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 应用数据（Cookie 加密文件、任务数据库、日志）—— 绝不入库
+.bilidownload/
+.bili-test/
+.data/
+*.enc
+tasks.db
+tasks.db-wal
+tasks.db-shm
+
+# 下载产物与构建产物
+downloads/
+dist/
+build/
+*.pyz
+
+# 缓存
+.buildcache/
+
+# 系统文件
+.DS_Store
+Thumbs.db

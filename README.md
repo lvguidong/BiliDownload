@@ -32,6 +32,7 @@ python3 -m bili_downloader.webserver --port 8899            # 也可直接跑该
 
 界面功能：
 - **左侧解析面板**：粘贴链接 → 点“解析”列出全部分集；字幕/弹幕/封面/NFO/跳过已下载/弹幕转 ASS 勾选；画质下拉；选集范围（`1-12,15`）。已选分集数量实时显示。
+- **仅下载音频**：勾选后不下载视频画面，只取最高码率音轨并封装为 `.m4a`（`-c:a copy` 无损、不转码）。勾选时会自动带上封面、并把封面嵌入音频文件作为专辑图，同时写入 title/artist/album 标签，直接拖进音乐播放器即可显示专辑信息；画质/字幕/弹幕选项会自动禁用。适合下载 B 站音乐、MV 音频、歌单。
 - **分集列表**：表格带复选框，支持全选/全不选；显示序号、标题、时长、CID。
 - **任务队列**：实时进度条、速度、大小、状态下拉标签；暂停/继续/取消/移除；恢复未完成/重试失败/清除已完成。
 - **扫码登录**：内置二维码生成器（纯标准库实现，支持版本 1-10 / 纠错 M / 字节模式），弹窗里直接显示可扫的二维码；登录成功后登录状态实时刷新。
@@ -89,12 +90,15 @@ python3 -m bili_downloader download "https://www.bilibili.com/bangumi/play/ss383
 python3 -m bili_downloader download "BV1xx411c7mD" \
     --range 1-12,15 --quality 80 --subtitle --cover --nfo --dir ./my-videos
 
-# 5. 中断后恢复 / 查看任务 / 失败重试
+# 5. 只下载音频（音乐/MV），输出带封面的 .m4a
+python3 -m bili_downloader download "BV1GJ411x7h7" --audio-only --cover
+
+# 6. 中断后恢复 / 查看任务 / 失败重试
 python3 -m bili_downloader resume
 python3 -m bili_downloader tasks
 python3 -m bili_downloader tasks --retry-failed && python3 -m bili_downloader resume
 
-# 6. 配置
+# 7. 配置
 python3 -m bili_downloader config            # 查看全部配置
 python3 -m bili_downloader config threads 16 # 修改单文件线程数
 ```
@@ -117,6 +121,7 @@ python3 -m bili_downloader config threads 16 # 修改单文件线程数
 | `chunk_size_mb` | `4` | 分片大小 |
 | `request_interval` | `0.5` | API 请求最小间隔（降低风控） |
 | `save_subtitle/danmaku/cover/nfo` | `false` | 辅助资源开关 |
+| `download_audio_only` | `false` | 默认仅下载音频（浏览器界面勾选/CLI `--audio-only` 可临时覆盖） |
 | `dedup` | `true` | 已下载去重 |
 | `ffmpeg_path` | `""` | ffmpeg 路径（留空自动查找） |
 

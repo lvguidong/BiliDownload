@@ -188,13 +188,30 @@ class DownloadManager:
                 "show": task.episode.series,
                 "comment": "Bilibili",
             }
-            if need_mux(stream):
+            audio_only = bool(task.extra.get("audio_only"))
+            if audio_only:
+                # 音乐播放器更认 artist/album 标签
+                metadata["artist"] = task.episode.series or "Bilibili"
+                metadata["album"] = task.episode.series
+            cover_path = None
+            if audio_only:
+                # 纯音频：提前下载封面（若有），交给 ffmpeg 嵌入为专辑图。
+                # 即使 need_mux() 为 False（因为没有视频流），也走 ffmpeg，
+                # 以便附加封面与元数据；-c:a copy 依旧无损不转码。
+                if task.extra.get("save_cover"):
+                    cover_path = self.metadata.download_cover(task.episode, os.path.dirname(output))
+                need_ffmpeg = bool(audio_file)
+            else:
+                need_ffmpeg = need_mux(stream)
+
+            if need_ffmpeg:
                 self.muxer.mux(
                     output,
-                    video_path=video_file,
+                    video_path=None if audio_only else video_file,
                     audio_path=audio_file,
+                    cover_path=cover_path,
                     metadata=metadata,
-                    audio_only=bool(task.extra.get("audio_only")),
+                    audio_only=audio_only,
                 )
             elif video_file:
                 os.replace(video_file, output)

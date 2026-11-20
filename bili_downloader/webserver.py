@@ -212,7 +212,11 @@ class WebState:
         else:
             quality = int(self.config.get("quality") or 0)
 
-        tasks = self.manager.build_tasks(result, indices=indices, quality=quality)
+        audio_only = bool(opts.get("audio_only", False))
+        if audio_only:
+            self.log("仅下载音频模式：不下载视频画面，封装为 .m4a")
+
+        tasks = self.manager.build_tasks(result, indices=indices, quality=quality, audio_only=audio_only)
         if not tasks:
             return {"ok": True, "started": 0,
                     "message": "没有需要下载的任务（可能已下载过，可关闭去重后重试）"}
@@ -574,12 +578,16 @@ INDEX_HTML = r"""<!DOCTYPE html>
     </div>
 
     <div class="checks">
+      <label class="audio-toggle"><input type="checkbox" id="optAudioOnly"> <b>仅下载音频</b></label>
       <label><input type="checkbox" id="optSubtitle"> 字幕</label>
       <label><input type="checkbox" id="optDanmaku"> 弹幕</label>
       <label><input type="checkbox" id="optCover"> 封面</label>
       <label><input type="checkbox" id="optNfo"> NFO</label>
       <label><input type="checkbox" id="optDedup" checked> 跳过已下载</label>
       <label><input type="checkbox" id="optAss"> 弹幕转 ASS</label>
+    </div>
+    <div id="audioHint" class="muted" style="margin-top:6px;display:none;font-size:12px">
+      仅下载音频：不下载视频画面，直接封装为 .m4a（无损，不转码）。如有封面会嵌入到音频文件中。
     </div>
 
     <label class="field">
@@ -826,6 +834,7 @@ async function doDownload(){
   const body = {
     indices,
     quality: Number($('quality').value),
+    audio_only: $('optAudioOnly').checked,
     save_subtitle: $('optSubtitle').checked,
     save_danmaku: $('optDanmaku').checked,
     save_cover: $('optCover').checked,
@@ -1006,7 +1015,26 @@ function switchTab(name){
   });
 }
 
+/* ---------- 仅下载音频：联动禁用无关选项 ---------- */
+function applyAudioMode(){
+  const on = $('optAudioOnly').checked;
+  $('audioHint').style.display = on ? 'block' : 'none';
+  // 纯音频不需要视频画质/字幕/弹幕，禁用以免误导
+  $('quality').disabled = on;
+  $('optSubtitle').disabled = on;
+  $('optDanmaku').disabled = on;
+  $('optAss').disabled = on;
+  if (on){
+    $('optSubtitle').checked = false;
+    $('optDanmaku').checked = false;
+    $('optAss').checked = false;
+    // 音频默认带上封面，音乐播放器可显示专辑图
+    $('optCover').checked = true;
+  }
+}
+
 /* ---------- 事件绑定 ---------- */
+$('optAudioOnly').addEventListener('change', applyAudioMode);
 $('btnParse').addEventListener('click', doParse);
 $('url').addEventListener('keydown', e => { if (e.key === 'Enter') doParse(); });
 $('btnDownload').addEventListener('click', doDownload);

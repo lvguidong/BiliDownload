@@ -42,15 +42,20 @@ def build_ffmpeg_args(
     audio_only: bool = False,
 ) -> List[str]:
     args: List[str] = ["-y", "-loglevel", "error"]
-    if cover_path and os.path.isfile(cover_path):
-        args += ["-loop", "1", "-framerate", "1", "-i", cover_path]
+    has_cover = bool(cover_path and os.path.isfile(cover_path))
+    if has_cover:
+        if audio_only:
+            # 纯音频：单张封面图，不需要 -loop（loop 会生成无限视频流）
+            args += ["-i", cover_path]
+        else:
+            args += ["-loop", "1", "-framerate", "1", "-i", cover_path]
     if video_path and not audio_only:
         args += ["-i", video_path]
     if audio_path:
         args += ["-i", audio_path]
 
     # 输入索引：封面为 0（若有），视频为 1 或 0，音频随后
-    cover_idx = 0 if cover_path and os.path.isfile(cover_path) else None
+    cover_idx = 0 if has_cover else None
     video_idx = (1 if cover_idx is not None else 0) if video_path and not audio_only else None
     audio_idx = (video_idx + 1 if video_idx is not None else (1 if cover_idx is not None else 0)) if audio_path else None
 
@@ -66,10 +71,16 @@ def build_ffmpeg_args(
             map_args += ["-map", f"{audio_idx}:a:0"]
         args += ["-c:v", "copy", "-c:a", "copy"]
     args += map_args
-    if cover_idx is not None and not audio_only:
-        # 附加封面为视频流的第一张图片（附件封面）
-        args += ["-map", f"{cover_idx}:v:0", "-c:v:1", "copy",
-                 "-disposition:v:1", "attached_pic"]
+    if cover_idx is not None:
+        # 封面作为附加图片流（attached_pic），音乐播放器借此显示专辑图
+        if audio_only:
+            # 纯音频：音频是输出流 0，封面是第一条（也是唯一一条）视频流 v:0
+            args += ["-map", f"{cover_idx}:v:0", "-c:v:0", "copy",
+                     "-disposition:v:0", "attached_pic"]
+        else:
+            # 视频模式：主视频是 v:0，附加封面是 v:1
+            args += ["-map", f"{cover_idx}:v:0", "-c:v:1", "copy",
+                     "-disposition:v:1", "attached_pic"]
 
     if metadata:
         for k, v in metadata.items():
